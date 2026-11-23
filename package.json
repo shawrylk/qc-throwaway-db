@@ -1,0 +1,20 @@
+{
+  "name": "qc-throwaway-db",
+  "version": "0.1.0",
+  "description": "Run a command against a disposable PostgreSQL database",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "qc-throwaway-db": "./src/cli/qc-throwaway-db.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test src/cli/throwaway-db.test.mjs",
+    "spec:check": "qc check"
+  }
+}

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Conventional, English, and the attribution trailer when qc.config.json asks for it. Checked here,
+# because a message is written at commit time and nowhere else.
+set -euo pipefail
+npx qc commit-msg "$1" || exit 1
