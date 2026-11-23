@@ -1,0 +1,6 @@
+{
+  "$comment": "Every key is optional. `qc config` prints what is in force.",
+  "featureRoots": [],
+  "foreign": [],
+  "agreements": []
+}
