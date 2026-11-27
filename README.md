@@ -2,7 +2,7 @@
 
 Run a command against a disposable PostgreSQL database. The tool starts a Docker
 container on a free loopback port, waits for PostgreSQL, runs your command with
-`DATABASE_URL` set, then removes the container and its data volume. It returns
+`DATABASE_URL` set, then removes the container. The data lives in memory, and the server skips disk syncs. It returns
 your command's exit code.
 
 Use Node.js 24 and a running Docker daemon. From the project whose command you

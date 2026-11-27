@@ -22,7 +22,17 @@ test("the env template fills the url, the port, and the rest, and keeps a litera
 test("the container publishes only on the loopback address", () => {
   const args = dockerRunArgs(throwawayDefaults, "qc-throwaway-1", 55001, generated);
   assert.ok(args.includes("127.0.0.1:55001:5432"));
-  assert.equal(args.at(-1), throwawayDefaults.image);
+  assert.ok(args.includes(throwawayDefaults.image));
+});
+
+test("the database keeps its data in memory and never waits on a disk sync", () => {
+  const args = dockerRunArgs(throwawayDefaults, "qc-throwaway-1", 55001, generated);
+  const image = args.indexOf(throwawayDefaults.image);
+  assert.ok(args.slice(0, image).join(" ").includes("--tmpfs /var/lib/postgresql/data"));
+  const server = args.slice(image + 1).join(" ");
+  for (const setting of ["fsync=off", "synchronous_commit=off", "full_page_writes=off"]) {
+    assert.ok(server.includes(`-c ${setting}`), setting);
+  }
 });
 
 const generated = randomBytes(8).toString("hex");

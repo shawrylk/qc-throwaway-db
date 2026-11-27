@@ -59,12 +59,18 @@ export function fillEnv(template, values) {
   );
 }
 
-/** The `docker run` arguments: a detached container that removes itself, published on the loopback address only. */
+/**
+ * The `docker run` arguments: a detached container that removes itself, published on the loopback address only.
+ * The data lives in memory and the server skips disk syncs. The run deletes the database, so crash safety buys
+ * nothing, and parallel test runs on one host otherwise stall on WAL and data file syncs.
+ */
 export function dockerRunArgs(settings, name, port, password) {
   return [
     "run", "--detach", "--rm", "--name", name, "--publish", `${HOST}:${port}:5432`,
+    "--tmpfs", "/var/lib/postgresql/data",
     "--env", `POSTGRES_USER=${settings.user}`, "--env", `POSTGRES_PASSWORD=${password}`, "--env", `POSTGRES_DB=${settings.database}`,
     settings.image,
+    "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off",
   ];
 }
 
