@@ -28,7 +28,7 @@ test("the container publishes only on the loopback address", () => {
 test("the database keeps its data in memory and never waits on a disk sync", () => {
   const args = dockerRunArgs(throwawayDefaults, "qc-throwaway-1", 55001, generated);
   const image = args.indexOf(throwawayDefaults.image);
-  assert.ok(args.slice(0, image).join(" ").includes("--tmpfs /var/lib/postgresql/data"));
+  assert.ok(args.slice(0, image).join(" ").includes("--tmpfs /var/lib/postgresql/data:rw,size=2g"));
   const server = args.slice(image + 1).join(" ");
   for (const setting of ["fsync=off", "synchronous_commit=off", "full_page_writes=off"]) {
     assert.ok(server.includes(`-c ${setting}`), setting);
@@ -165,4 +165,16 @@ test("port 5432 stays avoided when the config lists other ports to avoid", async
   const docker = (args) => { if (args[0] === "run") ports.push(args[args.indexOf("--publish") + 1]); return { code: 0, err: "" }; };
   await runThrowawayDb(config, ["--", "x"], { ...deps, docker, run, open: async () => opened[next++] });
   assert.deepEqual(ports, ["127.0.0.1:55003:5432"]);
+});
+
+test("the data directory is fixed, so a postgres 18 image starts on the memory mount", () => {
+  const args = dockerRunArgs({ ...throwawayDefaults, image: "postgres:18-alpine" }, "qc-throwaway-1", 55001, generated);
+  const before = args.slice(0, args.indexOf("postgres:18-alpine")).join(" ");
+  assert.ok(before.includes("--env PGDATA=/var/lib/postgresql/data"));
+  assert.ok(before.includes("--tmpfs /var/lib/postgresql/data:"));
+});
+
+test("throwawayDb.memorySize caps the memory mount", () => {
+  const args = dockerRunArgs({ ...throwawayDefaults, memorySize: "512m" }, "qc-throwaway-1", 55001, generated);
+  assert.ok(args.includes("/var/lib/postgresql/data:rw,size=512m"));
 });

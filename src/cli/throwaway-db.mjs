@@ -13,11 +13,11 @@ export const USAGE = `qc throwaway-db — run a command on a database of its own
   qc throwaway-db [--port <n>|auto] [--database <name>] -- <command...>
       start a postgres container on a free port (auto by default), wait until it is ready, run the
       optional schemaCommand, then the command, with the variables of throwawayDb.env filled in,
-      and remove the container and its data volume after. --database overrides throwawayDb.database
+      and remove the container and any data volume after. --database overrides throwawayDb.database
       for one run.
 
   qc.config.json "throwawayDb": image, user, database, env (each value may hold {url},
-  {host}, {port}, {user}, {password}, {database}), schemaCommand, avoidPorts, and readySeconds. The password is random for each run.`;
+  {host}, {port}, {user}, {password}, {database}), schemaCommand, avoidPorts, readySeconds, and memorySize (the cap of the in-memory data, default 2g). The password is random for each run.`;
 
 export const throwawayDefaults = {
   image: "postgres:17-alpine",
@@ -26,7 +26,10 @@ export const throwawayDefaults = {
   env: { DATABASE_URL: "{url}" },
   avoidPorts: [5432],
   readySeconds: 60,
+  memorySize: "2g",
 };
+
+const DATA_DIR = "/var/lib/postgresql/data";
 
 const HOST = "127.0.0.1";
 const PORT_TRIES = 10;
@@ -67,7 +70,9 @@ export function fillEnv(template, values) {
 export function dockerRunArgs(settings, name, port, password) {
   return [
     "run", "--detach", "--rm", "--name", name, "--publish", `${HOST}:${port}:5432`,
-    "--tmpfs", "/var/lib/postgresql/data",
+    // PGDATA names the mount itself. A postgres 18 image moves its default data directory and refuses
+    // to start when a mount sits on the old path, so the tool never relies on the image default.
+    "--tmpfs", `${DATA_DIR}:rw,size=${settings.memorySize}`, "--env", `PGDATA=${DATA_DIR}`,
     "--env", `POSTGRES_USER=${settings.user}`, "--env", `POSTGRES_PASSWORD=${password}`, "--env", `POSTGRES_DB=${settings.database}`,
     settings.image,
     "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off",
@@ -141,7 +146,7 @@ export async function runThrowawayDb(config, argv, deps = {}) {
     return await run(line, commandEnv);
   } finally {
     say(`qc throwaway-db: removing ${name}`);
-    // The postgres image declares a data volume, and a forced removal keeps it unless told otherwise.
+    // A postgres 18 image declares a volume above the memory mount, and a forced removal keeps it unless told otherwise.
     if (docker(["rm", "--force", "--volumes", name]).code !== 0) say(`qc throwaway-db: remove it by hand: docker rm --force --volumes ${name}`);
   }
 }
