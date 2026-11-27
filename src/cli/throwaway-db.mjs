@@ -105,6 +105,10 @@ export async function runThrowawayDb(config, argv, deps = {}) {
   try {
     const { values } = parseArgs({ args: flags, options: { port: { type: "string" }, database: { type: "string" } }, strict: true });
     if (command.length === 0) throw new Error("name the command after --");
+    // A bare number would mean bytes to docker, and initdb then fails inside the container with no cause shown here.
+    if (typeof settings.memorySize !== "string" || !/^[1-9][0-9]*[kmg]?$/.test(settings.memorySize)) {
+      throw new Error(`throwawayDb.memorySize must be a size string such as "2g", got ${JSON.stringify(settings.memorySize)}`);
+    }
     line = commandLine(command);
     if (values.database !== undefined) {
       if (!/^[a-z_][a-z0-9_]{0,62}$/.test(values.database)) throw new Error(`--database must be a lower-case postgres name, got ${values.database}`);

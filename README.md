@@ -8,7 +8,7 @@ code.
 The data lives in memory, and the server skips disk syncs. The tool deletes the
 database after the run, so crash safety buys nothing, and parallel test runs no
 longer wait on the disk. `throwawayDb.memorySize` caps the memory mount (default
-`2g`). A full mount fails with a "could not extend file" error.
+`2g`). A full mount fails with a "No space left on device" error.
 
 Use Node.js 24 and a running Docker daemon. From the project whose command you
 want to run, use the Git commit of qc-throwaway-db you want to install.

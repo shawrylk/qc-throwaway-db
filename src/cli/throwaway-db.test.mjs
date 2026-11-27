@@ -178,3 +178,13 @@ test("throwawayDb.memorySize caps the memory mount", () => {
   const args = dockerRunArgs({ ...throwawayDefaults, memorySize: "512m" }, "qc-throwaway-1", 55001, generated);
   assert.ok(args.includes("/var/lib/postgresql/data:rw,size=512m"));
 });
+
+test("a memorySize that is not a size string is a usage error before docker starts", async () => {
+  const calls = [];
+  const deps = { docker: fakeDocker(calls), open: async () => 55006, sleep: async () => {}, run: async () => 0, env: {}, say: () => {} };
+  for (const memorySize of [2048, "2 GB", "", "-1g"]) {
+    assert.equal(await runThrowawayDb({ throwawayDb: { memorySize } }, ["--", "x"], deps), 2, String(memorySize));
+  }
+  assert.equal(await runThrowawayDb({ throwawayDb: { memorySize: "512m" } }, ["--", "x"], deps), 0);
+  assert.deepEqual(calls.filter(call => call === "run --detach").length, 1);
+});
